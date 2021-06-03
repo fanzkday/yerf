@@ -1,21 +1,23 @@
 {
   "name": "yerf",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "yapi doc to typescript interface",
   "main": "lib/index.js",
   "scripts": {
-    "complier": "tsc && npm publish"
+    "complier": "tsc"
   },
   "bin": {
     "yerf": "./lib/index.js"
   },
   "files": [
+    "src/index.ts",
     "lib/index.js",
     ".eslintignore",
     ".eslintrc.js",
     ".prettierrc.json",
     "package.json",
     "tsconfig.json",
+    ".npmrc",
     "README.md"
   ],
   "repository": {
