@@ -102,6 +102,9 @@ function transform(body: ITransformBody, requiredNames: string[] = []): IList[] 
   const list: IList[] = [];
   const properties = body.properties ? { ...body.properties } : { ...body };
   Object.keys(properties).forEach(key => {
+    if (typeof properties[key] !== 'object') {
+      return;
+    }
     properties[key].key = key;
     if (requiredNames) {
       properties[key].required = requiredNames.includes(key) ? '1' : '0';
@@ -258,7 +261,7 @@ function main() {
         await getInterface({ ...api, menu: menu.desc || `api.${menu.uid}` });
       }
     }
-    cp.exec(`node ${process.cwd()}/node_modules/prettier/bin-prettier.js --write "${dir}/*.ts"`);
+    cp.exec(`node ${process.cwd()}/node_modules/prettier/bin-prettier.js --write "${dir}/**/*.ts"`);
   });
 }
 
