@@ -55,6 +55,7 @@ interface IData {
   path: string;
   req_body_type: 'form' | 'json';
   req_query: Item[];
+  req_params: Item[];
   req_body_form: Item[];
   req_body_other: string;
   res_body: string;
@@ -81,7 +82,11 @@ interface IList {
 const existNameMap: { [key: string]: boolean } = {};
 
 function getUnusedName(path: string): string {
-  const paths = path.split('/').reverse();
+  const paths = path
+    .split('/')
+    .filter(o => o.indexOf(':') !== 0)
+    .reverse();
+
   let name = '';
   tryer({
     tries: paths.length,
@@ -165,7 +170,7 @@ function toTemplate({ menu, title, name, list, isReq }: ITemplate) {
   const pascalName = pascalcase(name);
 
   function generateTemplate({ description, key, type, required, data }: IList) {
-    const flag = required === '0' ? '?' : '';
+    const flag = required === '0' && isReq ? '?' : '';
 
     if (type === 'array' || type === 'object') {
       process.nextTick(() => {
@@ -205,7 +210,7 @@ async function getInterface(args: { _id: string; menu: string }) {
 
     const name = getUnusedName(path);
 
-    const tries: Array<keyof IData> = ['res_body', 'req_query', 'req_body_form', 'req_body_other'];
+    const tries: Array<keyof IData> = ['res_body', 'req_query', 'req_body_form', 'req_params', 'req_body_other'];
 
     tryer({
       tries: tries.length,
