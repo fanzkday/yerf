@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
-const { tryer } = require('./tryer');
+const { tryer } = require('sayfe');
 
 const cwd = process.cwd();
 

@@ -1,6 +1,6 @@
 {
   "name": "yerf",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "yapi doc to typescript interface",
   "main": "lib/index.js",
   "scripts": {
@@ -41,7 +41,8 @@
     "@babel/traverse": "^7.13.17",
     "@babel/types": "^7.13.17",
     "axios": "^0.21.1",
-    "prettier": "^2.3.0"
+    "prettier": "^2.3.0",
+    "sayfe": "^1.1.5"
   },
   "devDependencies": {
     "@types/node": "^15.6.2",
