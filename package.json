@@ -1,6 +1,6 @@
 {
   "name": "yerf",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "yapi doc to typescript interface",
   "main": "lib/index.js",
   "scripts": {
