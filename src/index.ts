@@ -211,6 +211,7 @@ async function getInterface(args: { _id: string; menu: string }) {
     const name = getUnusedName(path);
 
     const tries: Array<keyof IData> = ['res_body', 'req_query', 'req_body_form', 'req_params', 'req_body_other'];
+    const suffixs = ['Body', 'Query', 'FormBody', 'Param', 'Body'];
 
     tryer({
       tries: tries.length,
@@ -233,10 +234,10 @@ async function getInterface(args: { _id: string; menu: string }) {
               if (body) {
                 if (key === 'res_body' && body.type === 'array' && body.items) {
                   const list = transform(body.items);
-                  toTemplate({ menu, title, name, list, isReq });
+                  toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
                 } else {
                   const list = transform(body, jsonBody.required);
-                  toTemplate({ menu, title, name, list, isReq });
+                  toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
                 }
               }
             }
@@ -252,7 +253,7 @@ async function getInterface(args: { _id: string; menu: string }) {
             key: o.name,
             required: o.required
           }));
-          toTemplate({ menu, title, name, list, isReq });
+          toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
         }
       }
     });
