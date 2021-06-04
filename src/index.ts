@@ -134,7 +134,11 @@ function transform(body: ITransformBody, requiredNames: string[] = []): IList[] 
     }
     if (type === 'object') {
       properties[key].type = 'object';
-      properties[key].data = transform(properties[key].properties);
+      if (Object.keys(properties[key].properties).length) {
+        properties[key].data = transform(properties[key].properties);
+      } else {
+        properties[key].data = 'any';
+      }
     }
     list.push(properties[key]);
   });
@@ -172,14 +176,23 @@ function toTemplate({ menu, title, name, list, isReq }: ITemplate) {
   function generateTemplate({ description, key, type, required, data }: IList) {
     const flag = required === '0' && isReq ? '?' : '';
 
-    if (type === 'array' || type === 'object') {
+    if (type === 'array') {
       process.nextTick(() => {
         toTemplate({ menu, title: `${title}子项`, name: `${pascalName}Item`, list: data as IList[], isReq });
       });
-      return template({ description: '列表子项', key, flag, value: `I${pascalName}Item${type === 'object' ? '' : '[]'}` });
+      return template({ description: '列表子项', key, flag, value: `I${pascalName}Item[]` });
+    }
+    if (type === 'object') {
+      if (Array.isArray(data)) {
+        process.nextTick(() => {
+          toTemplate({ menu, title: `${title}子项`, name: `${pascalName}Item`, list: data as IList[], isReq });
+        });
+        return template({ description: '列表子项', key, flag, value: `I${pascalName}Item` });
+      }
+      return template({ description: '列表子项', key, flag, value: data as string });
     }
     if (type === 'other') {
-      return template({ description, key, flag, value: 'any' });
+      return template({ description, key, flag, value: data as string });
     }
     return template({ description, key, flag, value: type });
   }
@@ -251,7 +264,8 @@ async function getInterface(args: { _id: string; menu: string }) {
             type: o.type === 'text' ? 'string' : 'other',
             description: o.desc,
             key: o.name,
-            required: o.required
+            required: o.required,
+            data: 'any'
           }));
           toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
         }
