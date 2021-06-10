@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -7,100 +8,37 @@ const { tryer } = require('sayfe');
 
 const cwd = process.cwd();
 
-interface IOption {
-  host: string;
-  token: string;
-  projectId: string;
-  outDir: string;
-  enumKeys: { [key: string]: string };
-}
-
 function camelcase(str = ''): string {
-  return str.replace(/(_\w)/g, $1 => $1.toUpperCase().replace('_', ''));
+  return str.replace(/(_\w)/g, $1 => $1.toUpperCase().replace('_', '')).replace(/_*$/, '');
 }
 
 function pascalcase(str = ''): string {
   return `${str[0].toUpperCase()}${str.substr(1)}`;
 }
 
-const { host, token, projectId, outDir, enumKeys = {} }: IOption = require(`${cwd}/package.json`).yapi;
+const { host, token, projectId, outDir, middleware }: IOption = require(`${cwd}/yerf.config`);
 
 const dir = path.resolve(cwd, outDir);
 
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir);
-fs.mkdirSync(dir + '/vo');
-fs.mkdirSync(dir + '/dto');
 
-interface IMenuList {
-  data: {
-    data: Array<{
-      list: Array<{ _id: string }>;
-      name: string;
-      desc: string;
-      uid: string;
-    }>;
-  };
-}
+const tries: Array<{ key: keyof IData; suffix: string }> = [
+  { key: 'res_body', suffix: 'ResBody' },
+  { key: 'req_query', suffix: 'Query' },
+  { key: 'req_body_form', suffix: 'ReqForm' },
+  { key: 'req_params', suffix: 'Param' },
+  { key: 'req_body_other', suffix: 'ReqBody' }
+];
 
-interface Item {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'other' | 'text';
-  desc: string;
-  name: string;
-  required: '0' | '1';
-}
-
-interface IData {
-  title: string;
-  path: string;
-  req_body_type: 'form' | 'json';
-  req_query: Item[];
-  req_params: Item[];
-  req_body_form: Item[];
-  req_body_other: string;
-  res_body: string;
-}
-
-interface IGetInterface {
-  data: {
-    data: IData;
-  };
-}
-
-interface ITransformBody {
-  properties?: any;
-}
-
-interface IList {
-  key: string;
-  description: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'other' | 'text';
-  required: '0' | '1';
-  data?: string | IList[];
-}
-
-const existNameMap: { [key: string]: boolean } = {};
-
-function getUnusedName(path: string): string {
-  const paths = path
+function getIntefaceName(path: string): string {
+  const _path = path
     .split('/')
     .filter(o => o.indexOf(':') !== 0)
-    .reverse();
+    .join('_');
+  const name = camelcase(_path);
 
-  let name = '';
-  tryer({
-    tries: paths.length,
-    exector: function (index: number, options: { stop: () => void }) {
-      name = name ? camelcase(`${paths[index]}_${name}`) : paths[index];
-      if (!existNameMap[name]) {
-        options.stop();
-      }
-    },
-    finished: function () {
-      existNameMap[name] = true;
-    }
-  });
-  return name;
+  return middleware?.interfaceName(name) || name;
 }
 
 function transform(body: ITransformBody, requiredNames: string[] = []): IList[] {
@@ -145,59 +83,52 @@ function transform(body: ITransformBody, requiredNames: string[] = []): IList[] 
   return list;
 }
 
-interface ITemplate {
-  menu: string;
-  title: string;
-  name: string;
-  list: IList[];
-  isReq: boolean;
-}
-
-function template({ description, key, value, flag }: { description: string; key: string; value: string; flag: string }) {
-  if (description) {
-    return `
+function template({ description, key, type, modifier }: ITemplate) {
+  return `
     /**
      * ${description || ''}
      */
-    ${camelcase(key)}${flag}: ${enumKeys[key] || value};
+    ${camelcase(key)}${modifier}: ${middleware?.propertiesType(key) || type};
       `;
-  }
-  return ` ${camelcase(key)}${flag}: ${enumKeys[key] || value};\r\n`;
 }
 
-function toTemplate({ menu, title, name, list, isReq }: ITemplate) {
+function toTemplate({ menu, title, key, list, isReq, parentKey = '' }: IToTemplate) {
   const items = list.filter(o => o.key);
   if (items.length === 0) {
     return;
   }
 
-  const pascalName = pascalcase(name);
+  const pascalName = pascalcase(key + parentKey);
 
   function generateTemplate({ description, key, type, required, data }: IList) {
-    const flag = required === '0' && isReq ? '?' : '';
+    const modifier = required === '0' && isReq ? '?' : '';
+    const pk = pascalcase(key);
 
     if (type === 'array') {
       process.nextTick(() => {
-        toTemplate({ menu, title: `${title}子项`, name: `${pascalName}Item`, list: data as IList[], isReq });
+        toTemplate({ menu, title: `${title}子项`, key: `${pascalName}`, parentKey: pk, list: data as IList[], isReq });
       });
-      return template({ description: '列表子项', key, flag, value: `I${pascalName}Item[]` });
+      return template({ description: '列表子项', key, modifier, type: `I${pascalName}${pk}[]` });
     }
+
     if (type === 'object') {
       if (Array.isArray(data)) {
         process.nextTick(() => {
-          toTemplate({ menu, title: `${title}子项`, name: `${pascalName}Item`, list: data as IList[], isReq });
+          toTemplate({ menu, title: `${title}子项`, key: `${pascalName}`, parentKey: pk, list: data as IList[], isReq });
         });
-        return template({ description: '列表子项', key, flag, value: `I${pascalName}Item` });
+        return template({ description: '列表子项', key, modifier, type: `I${pascalName}${pk}` });
       }
-      return template({ description: '列表子项', key, flag, value: data as string });
+      return template({ description: '列表子项', key, modifier, type: data as string });
     }
+
     if (type === 'other') {
-      return template({ description, key, flag, value: data as string });
+      return template({ description, key, modifier, type: data as string });
     }
-    return template({ description, key, flag, value: type });
+
+    return template({ description, key, modifier, type });
   }
 
-  const filepath = path.resolve(dir, isReq ? 'vo' : 'dto', `${menu}.ts`);
+  const filepath = path.resolve(dir, `${menu}.ts`);
 
   fs.writeFileSync(
     filepath,
@@ -221,15 +152,12 @@ async function getInterface(args: { _id: string; menu: string }) {
   await axios.get(`${host}/api/interface/get?id=${_id}&token=${token}`).then((res: IGetInterface) => {
     const { path, title, req_body_type } = res.data.data;
 
-    const name = getUnusedName(path);
-
-    const tries: Array<keyof IData> = ['res_body', 'req_query', 'req_body_form', 'req_params', 'req_body_other'];
-    const suffixs = ['Body', 'Query', 'FormBody', 'Param', 'Body'];
+    const name = getIntefaceName(path);
 
     tryer({
       tries: tries.length,
       exector: function (index: number) {
-        const key = tries[index];
+        const { key, suffix } = tries[index];
         if (key === 'req_body_other' && req_body_type !== 'json') {
           return;
         }
@@ -247,10 +175,10 @@ async function getInterface(args: { _id: string; menu: string }) {
               if (body) {
                 if (key === 'res_body' && body.type === 'array' && body.items) {
                   const list = transform(body.items);
-                  toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
+                  toTemplate({ menu, title, key: `${name}${suffix}`, list, isReq });
                 } else {
                   const list = transform(body, jsonBody.required);
-                  toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
+                  toTemplate({ menu, title, key: `${name}${suffix}`, list, isReq });
                 }
               }
             }
@@ -267,7 +195,7 @@ async function getInterface(args: { _id: string; menu: string }) {
             required: o.required,
             data: 'any'
           }));
-          toTemplate({ menu, title, name: `${name}${suffixs[index]}`, list, isReq });
+          toTemplate({ menu, title, key: `${name}${suffix}`, list, isReq });
         }
       }
     });

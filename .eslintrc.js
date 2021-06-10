@@ -13,6 +13,7 @@ module.exports = {
     '@typescript-eslint/indent': ['error', 2],
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-duplicate-imports': ['error'],
+    '@typescript-eslint/no-explicit-any': 'off',
     'no-console': 'off',
     'generator-star-spacing': 'off',
     'no-mixed-operators': 'off',

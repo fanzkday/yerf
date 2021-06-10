@@ -12,11 +12,14 @@
     "baseUrl": ".",
     "outDir": "lib",
     "rootDir": "src",
+    "declaration": true,
     "lib": [
       "esnext",
     ]
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "yapis",
+    "lib"
   ]
 }

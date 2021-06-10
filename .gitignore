@@ -2,3 +2,5 @@ node_modules
 lib
 *.lock
 *.log
+yerf.config.js
+yapis

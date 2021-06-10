@@ -1,6 +1,6 @@
 {
   "name": "yerf",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "yapi doc to typescript interface",
   "main": "lib/index.js",
   "scripts": {
@@ -11,7 +11,10 @@
   },
   "files": [
     "src/index.ts",
+    "src/helper.ts",
+    "src/interface.d.ts",
     "lib/index.js",
+    "lib/helper.js",
     ".eslintignore",
     ".eslintrc.js",
     ".prettierrc.json",
